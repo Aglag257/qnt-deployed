@@ -3,6 +3,7 @@ from openai import OpenAI
 import requests
 import streamlit as st
 import time
+import html
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -76,9 +77,9 @@ def conclude_debate(pro_args, con_args):
     )
     return openai_response(conclusion_prompt)
 
-# Define function to colorize text
 def colored_text(text, color):
-    return f"<div style='background-color:{color}; padding:10px; border-radius:5px;'>{text}</div>"
+    safe_text = html.escape(text)  # Escape special characters
+    return f"<div style='background-color:{color}; padding:10px; border-radius:5px;'>{safe_text}</div>"
 
 if __name__ == "__main__":
 
