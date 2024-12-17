@@ -80,32 +80,49 @@ if __name__ == "__main__":
 
     st.title("AI Debate System")
 
-    # Use Streamlit's text input to get the debate topic
+    # Input for debate topic
     topic = st.text_input("Enter the debate topic:")
 
     if topic:
-        st.write(f"Debate Topic: **{topic}**")
-
+        st.write(f"### Debate Topic: {topic}")
+        
         # Generate initial arguments
         pro_args, con_args = generate_arguments(topic)
 
-        # Display arguments
-        st.subheader("Round 1")
+        # Display initial arguments
+        st.subheader("Round 1: Arguments")
         st.write("### Pro Side Arguments:")
         st.write(pro_args)
 
         st.write("### Con Side Arguments:")
         st.write(con_args)
 
-    # Generate initial arguments
-    pro_args, con_args = generate_arguments(topic)
+        # Conduct multiple debate rounds
+        num_rounds = 3
+        for round_num in range(1, num_rounds + 1):
+            st.subheader(f"Round {round_num}: Rebuttals")
+            pro_args, con_args = debate_round(pro_args, con_args, round_num)
+            
+            st.write("#### Pro Side Rebuttal:")
+            st.write(pro_args)
+            
+            st.write("#### Con Side Rebuttal:")
+            st.write(con_args)
 
-    # Conduct multiple debate rounds
-    num_rounds = 3
-    for round_num in range(1, num_rounds + 1):
-        pro_args, con_args = debate_round(pro_args, con_args, round_num)
+        # Display the conclusion
+        result = conclude_debate(pro_args, con_args)
+        st.subheader("Debate Conclusion:")
+        st.write(result)
+        
+    # # Generate initial arguments
+    # pro_args, con_args = generate_arguments(topic)
 
-    # Summarize and conclude the debate
-    result = conclude_debate(pro_args, con_args)
-    print("\nDebate Conclusion:")
-    print(result)
+    # # Conduct multiple debate rounds
+    # num_rounds = 3
+    # for round_num in range(1, num_rounds + 1):
+    #     pro_args, con_args = debate_round(pro_args, con_args, round_num)
+
+    # # Summarize and conclude the debate
+    # result = conclude_debate(pro_args, con_args)
+    # print("\nDebate Conclusion:")
+    # print(result)
