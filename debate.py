@@ -1,6 +1,8 @@
 import os
 from openai import OpenAI
 import requests
+import streamlit as st
+
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
@@ -74,8 +76,26 @@ def conclude_debate(pro_args, con_args):
     return openai_response(conclusion_prompt)
 
 if __name__ == "__main__":
-    print("Welcome to the AI Debate System!")
-    topic = input("Enter the debate topic: ")
+
+
+    st.title("AI Debate System")
+
+    # Use Streamlit's text input to get the debate topic
+    topic = st.text_input("Enter the debate topic:")
+
+    if topic:
+        st.write(f"Debate Topic: **{topic}**")
+
+        # Generate initial arguments
+        pro_args, con_args = generate_arguments(topic)
+
+        # Display arguments
+        st.subheader("Round 1")
+        st.write("### Pro Side Arguments:")
+        st.write(pro_args)
+
+        st.write("### Con Side Arguments:")
+        st.write(con_args)
 
     # Generate initial arguments
     pro_args, con_args = generate_arguments(topic)
