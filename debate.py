@@ -40,8 +40,8 @@ def tavily_search(query):
 
 def generate_arguments(topic):
     """Generate initial arguments for both sides."""
-    pro_prompt = f"You are an AI debater supporting the topic: {topic}. Provide your strongest arguments."
-    con_prompt = f"You are an AI debater opposing the topic: {topic}. Provide your strongest arguments."
+    pro_prompt = f"Provide the strongest arguments supporting the following topic: '{topic}'. Do not include any introductions, preambles, or disclaimers. List arguments as bullet points or numbered points."
+    con_prompt = f"Provide the strongest arguments against the following topic: '{topic}'. Do not include any introductions, preambles, or disclaimers. List arguments as bullet points or numbered points."
 
     pro_args = openai_response(pro_prompt)
     con_args = openai_response(con_prompt)
@@ -77,7 +77,6 @@ def conclude_debate(pro_args, con_args):
 
 if __name__ == "__main__":
 
-
     st.title("AI Debate System")
 
     # Input for debate topic
@@ -85,44 +84,50 @@ if __name__ == "__main__":
 
     if topic:
         st.write(f"### Debate Topic: {topic}")
-        
+        st.write("---")
+
         # Generate initial arguments
         pro_args, con_args = generate_arguments(topic)
 
-        # Display initial arguments
-        st.subheader("Round 1: Arguments")
-        st.write("### Pro Side Arguments:")
-        st.write(pro_args)
+        # Split Pro and Con arguments into lists of points
+        pro_args_list = pro_args.split("\n")
+        con_args_list = con_args.split("\n")
 
-        st.write("### Con Side Arguments:")
-        st.write(con_args)
+        # Chat-like format: Display Pro arguments (left) and Con arguments (right)
+        st.subheader("Round 1: Arguments")
+        for pro, con in zip(pro_args_list, con_args_list):
+            col1, col2 = st.columns(2)
+            with col1:
+                if pro.strip():
+                    with st.chat_message("assistant"):
+                        st.markdown(f"**Pro Side:** {pro}")
+            with col2:
+                if con.strip():
+                    with st.chat_message("user"):
+                        st.markdown(f"**Con Side:** {con}")
 
         # Conduct multiple debate rounds
         num_rounds = 3
         for round_num in range(1, num_rounds + 1):
             st.subheader(f"Round {round_num}: Rebuttals")
+            
+            # Generate rebuttals
             pro_args, con_args = debate_round(pro_args, con_args, round_num)
-            
-            st.write("#### Pro Side Rebuttal:")
-            st.write(pro_args)
-            
-            st.write("#### Con Side Rebuttal:")
-            st.write(con_args)
+            pro_args_list = pro_args.split("\n")
+            con_args_list = con_args.split("\n")
+
+            for pro, con in zip(pro_args_list, con_args_list):
+                col1, col2 = st.columns(2)
+                with col1:
+                    if pro.strip():
+                        with st.chat_message("assistant"):
+                            st.markdown(f"**Pro Side Rebuttal:** {pro}")
+                with col2:
+                    if con.strip():
+                        with st.chat_message("user"):
+                            st.markdown(f"**Con Side Rebuttal:** {con}")
 
         # Display the conclusion
         result = conclude_debate(pro_args, con_args)
         st.subheader("Debate Conclusion:")
         st.write(result)
-        
-    # # Generate initial arguments
-    # pro_args, con_args = generate_arguments(topic)
-
-    # # Conduct multiple debate rounds
-    # num_rounds = 3
-    # for round_num in range(1, num_rounds + 1):
-    #     pro_args, con_args = debate_round(pro_args, con_args, round_num)
-
-    # # Summarize and conclude the debate
-    # result = conclude_debate(pro_args, con_args)
-    # print("\nDebate Conclusion:")
-    # print(result)
