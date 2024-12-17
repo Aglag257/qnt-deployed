@@ -2,21 +2,11 @@ import os
 from openai import OpenAI
 import requests
 
-def load_api_keys(filename="api_keys.txt"):
-    api_keys = {}
-    try:
-        with open(filename, "r") as f:
-            for line in f:
-                if "=" in line:
-                    key, value = line.strip().split("=", 1)
-                    api_keys[key] = value
-    except FileNotFoundError:
-        print(f"Error: {filename} not found. Ensure your API keys are in this file.")
-    return api_keys
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
-api_keys = load_api_keys()
-OPENAI_API_KEY = api_keys.get("OPENAI_API_KEY")
-TAVILY_API_KEY = api_keys.get("TAVILY_API_KEY")
+if not OPENAI_API_KEY or not TAVILY_API_KEY:
+    raise ValueError("API keys not found. Set OPENAI_API_KEY and TAVILY_API_KEY as environment variables.")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
