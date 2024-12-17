@@ -2,6 +2,7 @@ import os
 from openai import OpenAI
 import requests
 import streamlit as st
+import time
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -77,43 +78,42 @@ def conclude_debate(pro_args, con_args):
 
 if __name__ == "__main__":
 
-
     st.title("AI Debate System")
 
     # Input for debate topic
     topic = st.text_input("Enter the debate topic:")
 
+    # Define function to colorize text
+    def colored_text(text, color):
+        return f"<div style='background-color:{color}; padding:10px; border-radius:5px;'>{text}</div>"
+
     if topic:
         st.write(f"### Debate Topic: {topic}")
-        
+
         # Generate initial arguments
         pro_args, con_args = generate_arguments(topic)
 
-        # Display initial arguments
+        # Display initial arguments with colors
         st.subheader("Round 1: Arguments")
-        st.write("### Pro Side Arguments:")
-        st.write(pro_args)
-
-        st.write("### Con Side Arguments:")
-        st.write(con_args)
+        st.markdown(colored_text("### Pro Side Arguments:\n" + pro_args, "#d4edda"), unsafe_allow_html=True)
+        st.markdown(colored_text("### Con Side Arguments:\n" + con_args, "#f8d7da"), unsafe_allow_html=True)
 
         # Conduct multiple debate rounds
         num_rounds = 3
         for round_num in range(1, num_rounds + 1):
             st.subheader(f"Round {round_num}: Rebuttals")
+            
+            # Generate rebuttals
             pro_args, con_args = debate_round(pro_args, con_args, round_num)
             
-            st.write("#### Pro Side Rebuttal:")
-            st.write(pro_args)
-            
-            st.write("#### Con Side Rebuttal:")
-            st.write(con_args)
+            st.markdown(colored_text("**Pro Side Rebuttal:**\n" + pro_args, "#d4edda"), unsafe_allow_html=True)
+            st.markdown(colored_text("**Con Side Rebuttal:**\n" + con_args, "#f8d7da"), unsafe_allow_html=True)
+            time.sleep(1)  # Simulate round progression
 
         # Display the conclusion
         result = conclude_debate(pro_args, con_args)
         st.subheader("Debate Conclusion:")
         st.write(result)
-        
     # # Generate initial arguments
     # pro_args, con_args = generate_arguments(topic)
 
