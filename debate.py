@@ -76,6 +76,10 @@ def conclude_debate(pro_args, con_args):
     )
     return openai_response(conclusion_prompt)
 
+# Define function to colorize text
+def colored_text(text, color):
+    return f"<div style='background-color:{color}; padding:10px; border-radius:5px;'>{text}</div>"
+
 if __name__ == "__main__":
 
     st.title("AI Debate System")
@@ -83,9 +87,6 @@ if __name__ == "__main__":
     # Input for debate topic
     topic = st.text_input("Enter the debate topic:")
 
-    # Define function to colorize text
-    def colored_text(text, color):
-        return f"<div style='background-color:{color}; padding:10px; border-radius:5px;'>{text}</div>"
 
     if topic:
         st.write(f"### Debate Topic: {topic}")
