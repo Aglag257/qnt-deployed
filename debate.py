@@ -17,9 +17,11 @@ def openai_response(prompt):
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": "You are a helpful assistant."},
-                     {"role": "user", "content": prompt}],
-            max_tokens=300,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=700,  # Increase this to 700 or more
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
@@ -89,22 +91,23 @@ if __name__ == "__main__":
         # Generate initial arguments
         pro_args, con_args = generate_arguments(topic)
 
-        # Split Pro and Con arguments into lists of points
-        pro_args_list = pro_args.split("\n")
-        con_args_list = con_args.split("\n")
+        # Split arguments safely into blocks (ensure no truncation)
+        pro_args_list = pro_args.split("\n") if "\n" in pro_args else [pro_args]
+        con_args_list = con_args.split("\n") if "\n" in con_args else [con_args]
 
-        # Chat-like format: Display Pro arguments (left) and Con arguments (right)
+        # Chat-like layout
         st.subheader("Round 1: Arguments")
-        for pro, con in zip(pro_args_list, con_args_list):
+        max_len = max(len(pro_args_list), len(con_args_list))
+        for i in range(max_len):
             col1, col2 = st.columns(2)
             with col1:
-                if pro.strip():
+                if i < len(pro_args_list) and pro_args_list[i].strip():
                     with st.chat_message("assistant"):
-                        st.markdown(f"**Pro Side:** {pro}")
+                        st.markdown(f"**Pro Side:** {pro_args_list[i]}")
             with col2:
-                if con.strip():
+                if i < len(con_args_list) and con_args_list[i].strip():
                     with st.chat_message("user"):
-                        st.markdown(f"**Con Side:** {con}")
+                        st.markdown(f"**Con Side:** {con_args_list[i]}")
 
         # Conduct multiple debate rounds
         num_rounds = 3
