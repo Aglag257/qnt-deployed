@@ -79,26 +79,8 @@ def conclude_debate(pro_args, con_args):
 
 if __name__ == "__main__":
 
-    st.markdown(
-        """
-        <style>
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            margin-bottom: 20px;
-        }
-        .logo-container img {
-            max-height: 60px; /* Adjust the height as needed */
-            max-width: auto;
-        }
-        </style>
-        <div class="logo-container">
-            <img src="logo.jpg" alt="Logo">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.image("logo.jpg", width=100)
+
     st.title("AI Debate System")
 
     # Input for debate topic
