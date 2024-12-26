@@ -79,6 +79,8 @@ def conclude_debate(pro_args, con_args):
 
 if __name__ == "__main__":
 
+    st.image("logo.jpg", use_column_width=True)
+
     st.title("AI Debate System")
 
     # Input for debate topic
