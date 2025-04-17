@@ -1,3 +1,5 @@
 openai
 requests
 streamlit
+ccxt
+pandas
