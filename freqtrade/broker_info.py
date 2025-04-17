@@ -7,6 +7,8 @@ import time
 EXCHANGES = ['binance', 'coinbase', 'kraken', 'bitfinex', 'kucoin']
 TOP_COINS = ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT']
 
+error_messages = []
+
 @st.cache_resource
 def load_exchanges():
     exchange_objects = {}
@@ -16,7 +18,7 @@ def load_exchanges():
             exchange.load_markets()
             exchange_objects[ex] = exchange
         except Exception as e:
-            st.warning(f"[ERROR] Could not load {ex}: {e}")
+            error_messages.append(f"[ERROR] Could not load {ex}: {e}")
     return exchange_objects
 
 def fetch_all_metrics(exchanges, coins):
@@ -43,7 +45,7 @@ def fetch_all_metrics(exchanges, coins):
                 }
                 records.append(data)
             except Exception as e:
-                st.warning(f"[ERROR] {ex_name} - {coin}: {e}")
+                error_messages.append(f"[ERROR] {ex_name} - {coin}: {e}")
     return pd.DataFrame(records)
 
 def get_arbitrage_summary(df, threshold_percent=0.5):
@@ -71,6 +73,7 @@ def get_arbitrage_summary(df, threshold_percent=0.5):
     return pd.DataFrame(summary)
 
 def main():
+    st.set_page_config(page_title="Crypto Broker Arbitrage Dashboard", layout="wide")
     st.title("📈 Crypto Broker Arbitrage Dashboard")
     st.caption("Live metrics and arbitrage detection across top exchanges.")
     st.sidebar.header("Settings")
@@ -83,9 +86,16 @@ def main():
     placeholder = st.empty()
 
     while True:
+        error_messages.clear()
+
         with placeholder.container():
             st.markdown(f"#### Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
             df = fetch_all_metrics(exchanges, TOP_COINS)
+
+            if error_messages:
+                with st.expander("⚠️ View Error Log", expanded=False):
+                    for msg in error_messages:
+                        st.warning(msg)
 
             st.subheader("🔍 Full Exchange Metrics")
             st.dataframe(df.sort_values(by=['Pair', 'Exchange']), use_container_width=True)
