@@ -1,9 +1,13 @@
 import ccxt
 import pandas as pd
+import streamlit as st
+from datetime import datetime
+import time
 
 EXCHANGES = ['binance', 'coinbase', 'kraken', 'bitfinex', 'kucoin']
 TOP_COINS = ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT']
 
+@st.cache_resource
 def load_exchanges():
     exchange_objects = {}
     for ex in EXCHANGES:
@@ -12,7 +16,7 @@ def load_exchanges():
             exchange.load_markets()
             exchange_objects[ex] = exchange
         except Exception as e:
-            print(f"[ERROR] Could not load {ex}: {e}")
+            st.warning(f"[ERROR] Could not load {ex}: {e}")
     return exchange_objects
 
 def fetch_all_metrics(exchanges, coins):
@@ -39,14 +43,12 @@ def fetch_all_metrics(exchanges, coins):
                 }
                 records.append(data)
             except Exception as e:
-                print(f"[ERROR] {ex_name} - {coin}: {e}")
+                st.warning(f"[ERROR] {ex_name} - {coin}: {e}")
     return pd.DataFrame(records)
 
-def print_arbitrage_summary(df, threshold_percent=0.5):
-    print("\n=== Arbitrage Summary ===\n")
+def get_arbitrage_summary(df, threshold_percent=0.5):
+    summary = []
     grouped = df.groupby('Pair')
-
-    found = False
     for pair, group in grouped:
         prices = group.dropna(subset=['Price'])
         if len(prices) < 2:
@@ -60,25 +62,44 @@ def print_arbitrage_summary(df, threshold_percent=0.5):
         spread = ((high - low) / low) * 100 if low else 0
 
         if spread > threshold_percent:
-            found = True
-            print(f"{pair}:")
-            print(f"  Buy @ {low:.2f} ({low_row['Exchange']})")
-            print(f"  Sell @ {high:.2f} ({high_row['Exchange']})")
-            print(f"  Spread: {spread:.2f}%\n")
+            summary.append({
+                "Pair": pair,
+                "Buy @": f"{low:.2f} ({low_row['Exchange']})",
+                "Sell @": f"{high:.2f} ({high_row['Exchange']})",
+                "Spread (%)": f"{spread:.2f}"
+            })
+    return pd.DataFrame(summary)
 
-    if not found:
-        print("No arbitrage opportunities found.")
+def main():
+    st.title("📈 Crypto Broker Arbitrage Dashboard")
+    st.caption("Live metrics and arbitrage detection across top exchanges.")
+    st.sidebar.header("Settings")
+    
+    autorefresh = st.sidebar.toggle("Auto-refresh every 60 seconds", value=True)
+    threshold = st.sidebar.slider("Arbitrage threshold (%)", 0.1, 5.0, 0.5, 0.1)
+
+    exchanges = load_exchanges()
+    
+    placeholder = st.empty()
+
+    while True:
+        with placeholder.container():
+            st.markdown(f"#### Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            df = fetch_all_metrics(exchanges, TOP_COINS)
+
+            st.subheader("🔍 Full Exchange Metrics")
+            st.dataframe(df.sort_values(by=['Pair', 'Exchange']), use_container_width=True)
+
+            arb_df = get_arbitrage_summary(df, threshold)
+            st.subheader("💰 Arbitrage Opportunities")
+            if arb_df.empty:
+                st.info("No arbitrage opportunities found above threshold.")
+            else:
+                st.dataframe(arb_df, use_container_width=True)
+
+        if not autorefresh:
+            break
+        time.sleep(60)
 
 if __name__ == "__main__":
-    print("[*] Loading exchanges...")
-    exchanges = load_exchanges()
-
-    print("[*] Fetching all available ticker metrics...")
-    df = fetch_all_metrics(exchanges, TOP_COINS)
-
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    print("\n=== Full Exchange Metrics ===\n")
-    print(df.sort_values(by=['Pair', 'Exchange']).to_string(index=False))
-
-    print_arbitrage_summary(df)
+    main()
