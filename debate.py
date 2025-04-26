@@ -13,7 +13,6 @@ if not OPENAI_API_KEY or not TAVILY_API_KEY:
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def openai_response(prompt):
-    """Get response from OpenAI's API."""
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -21,7 +20,7 @@ def openai_response(prompt):
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=700,  # Increase this to 700 or more
+            max_tokens=700, 
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
@@ -29,7 +28,6 @@ def openai_response(prompt):
         return f"Error: {e}"
 
 def tavily_search(query):
-    """Fetch data from Tavily API."""
     url = f"https://api.tavily.ai/search?q={query}&key={TAVILY_API_KEY}"
     try:
         response = requests.get(url)
@@ -41,7 +39,6 @@ def tavily_search(query):
         return f"Error: {e}"
 
 def generate_arguments(topic):
-    """Generate initial arguments for both sides."""
     pro_prompt = f"Provide the strongest arguments supporting the following topic: '{topic}'. Do not include any introductions, preambles, or disclaimers. List arguments as bullet points or numbered points."
     con_prompt = f"Provide the strongest arguments against the following topic: '{topic}'. Do not include any introductions, preambles, or disclaimers. List arguments as bullet points or numbered points."
 
@@ -51,7 +48,6 @@ def generate_arguments(topic):
     return pro_args, con_args
 
 def debate_round(pro_args, con_args, round_num):
-    """Conduct a round of debate between agents."""
     print(f"\nRound {round_num}")
     print("Pro side arguments:")
     print(pro_args)
@@ -68,7 +64,6 @@ def debate_round(pro_args, con_args, round_num):
     return pro_rebuttal, con_rebuttal
 
 def conclude_debate(pro_args, con_args):
-    """Summarize the debate and decide the winner."""
     conclusion_prompt = (
         f"Summarize the arguments and counterarguments presented for the topic. \n"
         f"Pro arguments: {pro_args}. \n"
@@ -83,21 +78,17 @@ if __name__ == "__main__":
 
     st.title("AI Debate System")
 
-    # Input for debate topic
     topic = st.text_input("Enter the debate topic:")
 
     if topic:
         st.write(f"### Debate Topic: {topic}")
         st.write("---")
 
-        # Generate initial arguments
         pro_args, con_args = generate_arguments(topic)
 
-        # Split arguments safely into blocks (ensure no truncation)
         pro_args_list = pro_args.split("\n") if "\n" in pro_args else [pro_args]
         con_args_list = con_args.split("\n") if "\n" in con_args else [con_args]
 
-        # Chat-like layout
         st.subheader("Round 1: Arguments")
         max_len = max(len(pro_args_list), len(con_args_list))
         for i in range(max_len):
@@ -111,7 +102,6 @@ if __name__ == "__main__":
                     with st.chat_message("user"):
                         st.markdown(f"**Con Side:** {con_args_list[i]}")
 
-        # Conduct multiple debate rounds
         num_rounds = 3
         for round_num in range(1, num_rounds + 1):
             st.subheader(f"Round {round_num}: Rebuttals")
@@ -132,7 +122,6 @@ if __name__ == "__main__":
                         with st.chat_message("user"):
                             st.markdown(f"**Con Side Rebuttal:** {con}")
 
-        # Display the conclusion
         result = conclude_debate(pro_args, con_args)
         st.subheader("Debate Conclusion:")
         st.write(result)
