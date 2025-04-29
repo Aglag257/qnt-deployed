@@ -3,5 +3,5 @@ services:
     name: crypto-broker-dashboard
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run broker_info.py --server.port 10000 --server.address 0.0.0.0
+    startCommand: streamlit run on-render-deployment\broker_info.py --server.port 10000 --server.address 0.0.0.0
     plan: free
