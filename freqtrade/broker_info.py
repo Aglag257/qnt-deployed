@@ -49,9 +49,9 @@ def fetch_all_metrics(exchanges, coins):
     return pd.DataFrame(records)
 
 def main():
-    st.set_page_config(page_title="Crypto Broker Arbitrage Dashboard", layout="wide")
-    st.title("📈 Crypto Broker Arbitrage Dashboard")
-    st.caption("Live metrics and arbitrage detection across top exchanges.")
+    st.set_page_config(page_title="Crypto Broker Information Dashboard", layout="wide")
+    st.title("📈 Crypto Broker Information Dashboard")
+    st.caption("Live metrics across top exchanges.")
     st.sidebar.header("Settings")
     
     autorefresh = st.sidebar.toggle("Auto-refresh every 60 seconds", value=True)
