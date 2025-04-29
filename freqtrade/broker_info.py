@@ -1,7 +1,7 @@
 import ccxt
 import pandas as pd
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 
 EXCHANGES = ['binance', 'coinbase', 'kraken', 'bitfinex', 'kucoin']
@@ -39,10 +39,10 @@ def fetch_all_metrics(exchanges, coins):
                     'Quote Volume (24h)': ticker.get('quoteVolume'),
                     '% Change': ticker.get('percentage'),
                     'Change': ticker.get('change'),
-                    'Previous Close': ticker.get('previousClose'),
                     'Open': ticker.get('open'),
                     'Timestamp': pd.to_datetime(ticker.get('timestamp'), unit='ms') if ticker.get('timestamp') else None,
                 }
+                data['Timestamp (UTC+3)'] = data['Timestamp'] + pd.Timedelta(hours=3)
                 records.append(data)
             except Exception as e:
                 error_messages.append(f"[ERROR] {ex_name} - {coin}: {e}")
