@@ -64,7 +64,8 @@ def main():
         error_messages.clear()
 
         with placeholder.container():
-            st.markdown(f"#### Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            now_utc3 = datetime.utcnow() + pd.Timedelta(hours=3)
+            st.markdown(f"#### Last updated: {now_utc3.strftime('%Y-%m-%d %H:%M:%S')} UTC+03:00")
             df = fetch_all_metrics(exchanges, TOP_COINS)
 
             if error_messages:
