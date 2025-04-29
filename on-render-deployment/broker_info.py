@@ -4,10 +4,6 @@ import streamlit as st
 from datetime import datetime, timezone
 import time
 
-st.set_option('server.headless', True)
-st.set_option('server.enableCORS', False)
-st.set_option('server.enableXsrfProtection', False)
-
 
 EXCHANGES = ['binance', 'coinbase', 'kraken', 'bitfinex', 'kucoin']
 TOP_COINS = ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT']
