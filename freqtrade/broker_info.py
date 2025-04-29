@@ -48,30 +48,6 @@ def fetch_all_metrics(exchanges, coins):
                 error_messages.append(f"[ERROR] {ex_name} - {coin}: {e}")
     return pd.DataFrame(records)
 
-def get_arbitrage_summary(df, threshold_percent=0.5):
-    summary = []
-    grouped = df.groupby('Pair')
-    for pair, group in grouped:
-        prices = group.dropna(subset=['Price'])
-        if len(prices) < 2:
-            continue
-
-        low_row = prices.loc[prices['Price'].idxmin()]
-        high_row = prices.loc[prices['Price'].idxmax()]
-
-        low = low_row['Price']
-        high = high_row['Price']
-        spread = ((high - low) / low) * 100 if low else 0
-
-        if spread > threshold_percent:
-            summary.append({
-                "Pair": pair,
-                "Buy @": f"{low:.2f} ({low_row['Exchange']})",
-                "Sell @": f"{high:.2f} ({high_row['Exchange']})",
-                "Spread (%)": f"{spread:.2f}"
-            })
-    return pd.DataFrame(summary)
-
 def main():
     st.set_page_config(page_title="Crypto Broker Arbitrage Dashboard", layout="wide")
     st.title("📈 Crypto Broker Arbitrage Dashboard")
@@ -79,7 +55,6 @@ def main():
     st.sidebar.header("Settings")
     
     autorefresh = st.sidebar.toggle("Auto-refresh every 60 seconds", value=True)
-    threshold = st.sidebar.slider("Arbitrage threshold (%)", 0.1, 5.0, 0.5, 0.1)
 
     exchanges = load_exchanges()
     
@@ -99,13 +74,6 @@ def main():
 
             st.subheader("🔍 Full Exchange Metrics")
             st.dataframe(df.sort_values(by=['Pair', 'Exchange']), use_container_width=True)
-
-            arb_df = get_arbitrage_summary(df, threshold)
-            st.subheader("💰 Arbitrage Opportunities")
-            if arb_df.empty:
-                st.info("No arbitrage opportunities found above threshold.")
-            else:
-                st.dataframe(arb_df, use_container_width=True)
 
         if not autorefresh:
             break
