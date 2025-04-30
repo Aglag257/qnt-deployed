@@ -4,6 +4,7 @@ import streamlit as st
 from datetime import datetime, timezone
 import time
 import plotly.express as px
+import uuid  
 
 EXCHANGES = ['binance', 'coinbase', 'kraken', 'bitfinex', 'kucoin']
 TOP_COINS = ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT']
@@ -52,6 +53,8 @@ def fetch_all_metrics(exchanges, coins):
 def display_charts_grid(df_subset, y_col, title_prefix, y_label, color_col="Exchange", log_y=False):
     coins = df_subset["Pair"].unique()
     num_cols = 3
+    unique_id = str(uuid.uuid4())
+
     for i in range(0, len(coins), num_cols):
         cols = st.columns(num_cols)
         for j, coin in enumerate(coins[i:i + num_cols]):
@@ -65,7 +68,7 @@ def display_charts_grid(df_subset, y_col, title_prefix, y_label, color_col="Exch
                     labels={y_col: y_label},
                     log_y=log_y,
                 )
-                st.plotly_chart(fig, use_container_width=True, key=f"{y_col}-{coin}")
+                st.plotly_chart(fig, use_container_width=True, key=f"{unique_id}-{y_col}-{coin}")
 
 def main():
     st.set_page_config(page_title="Crypto Broker Information Dashboard", layout="wide")
