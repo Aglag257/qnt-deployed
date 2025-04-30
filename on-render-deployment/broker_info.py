@@ -100,7 +100,7 @@ def main():
             spread_df = df.copy()
             spread_df["Spread"] = spread_df["Ask"] - spread_df["Bid"]
             spread_df = spread_df.dropna(subset=["Spread"])
-            
+
             st.subheader("💸 Price Per Coin")
             display_charts_grid(price_df, "Price", "Price", "Last Price")
 
@@ -114,6 +114,10 @@ def main():
             display_charts_grid(spread_df, "Spread", "Spread", "Ask - Bid")
 
             st.subheader("⏱ Data Freshness (Age in Seconds)")
+            fresh_df = df.copy()
+            fresh_df["Data Age (sec)"] = (datetime.utcnow() - fresh_df["Timestamp"]).dt.total_seconds().round()
+            fresh_df = fresh_df.dropna(subset=["Data Age (sec)"])
+
             fig_fresh = px.density_heatmap(
                 fresh_df,
                 x="Exchange",
