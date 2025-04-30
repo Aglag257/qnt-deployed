@@ -2,10 +2,11 @@ import streamlit as st
 import openai
 import os
 import tempfile
+import time
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
 
-st.title("PDF Comparison")
+st.title("PDF Comparison Chat with GPT-4")
 
 pdf1 = st.file_uploader("Upload the first PDF", type="pdf")
 pdf2 = st.file_uploader("Upload the second PDF", type="pdf")
@@ -24,21 +25,20 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     file1 = openai.files.create(file=open(pdf1_path, "rb"), purpose="assistants")
     file2 = openai.files.create(file=open(pdf2_path, "rb"), purpose="assistants")
 
+    vector_store = openai.beta.vector_stores.create(file_ids=[file1.id, file2.id])
+
     assistant = openai.beta.assistants.create(
         name="PDF Comparator",
-        instructions="You are an expert in document analysis. Use the uploaded PDFs to answer user questions, especially those comparing values between the two.",
+        instructions="You are an expert in comparing two documents. Use the uploaded PDFs to answer user questions, especially comparisons.",
         model="gpt-4-1106-preview",
         tools=[{"type": "file_search"}],
         tool_resources={
             "file_search": {
-                "vector_store_ids": [
-                    openai.beta.vector_stores.create(
-                        file_ids=[file1.id, file2.id]
-                    ).id
-                ]
+                "vector_store_ids": [vector_store.id]
             }
         }
-    ) 
+    )
+
     thread = openai.beta.threads.create()
     openai.beta.threads.messages.create(
         thread_id=thread.id,
@@ -52,9 +52,11 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     )
 
     with st.spinner("Getting your answer from GPT-4..."):
-        import time
         while True:
-            run_status = openai.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+            run_status = openai.beta.threads.runs.retrieve(
+                thread_id=thread.id,
+                run_id=run.id
+            )
             if run_status.status == "completed":
                 break
             elif run_status.status == "failed":
