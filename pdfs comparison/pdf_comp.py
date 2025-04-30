@@ -36,9 +36,10 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     message = openai.beta.threads.messages.create(
         thread_id=thread.id,
         role="user",
-        content=question
+        content=question,
+        file_ids=[file1.id, file2.id]
     )
-
+    
     run = openai.beta.threads.runs.create(
         thread_id=thread.id,
         assistant_id=assistant.id
