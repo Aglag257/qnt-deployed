@@ -28,9 +28,17 @@ if st.button("Submit") and pdf1 and pdf2 and question:
         name="PDF Comparator",
         instructions="You are an expert in document analysis. Use the uploaded PDFs to answer user questions, especially those comparing values between the two.",
         model="gpt-4-1106-preview",
-        tools=[{"type": "retrieval"}],
-        tool_resources={"retrieval": {"file_ids": [file1.id, file2.id]}}
-    )
+        tools=[{"type": "file_search"}],
+        tool_resources={
+            "file_search": {
+                "vector_store_ids": [
+                    openai.beta.vector_stores.create(
+                        file_ids=[file1.id, file2.id]
+                    ).id
+                ]
+            }
+        }
+    ) 
     thread = openai.beta.threads.create()
     openai.beta.threads.messages.create(
         thread_id=thread.id,
