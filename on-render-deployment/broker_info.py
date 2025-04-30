@@ -49,6 +49,23 @@ def fetch_all_metrics(exchanges, coins):
                 error_messages.append(f"[ERROR] {ex_name} - {coin}: {e}")
     return pd.DataFrame(records)
 
+def display_charts_grid(df_subset, y_col, title_prefix, y_label, color_col="Exchange", log_y=False):
+    coins = df_subset["Pair"].unique()
+    num_cols = 3
+    for i in range(0, len(coins), num_cols):
+        cols = st.columns(num_cols)
+        for j, coin in enumerate(coins[i:i + num_cols]):
+            with cols[j]:
+                fig = px.bar(
+                    df_subset[df_subset["Pair"] == coin],
+                    x="Exchange",
+                    y=y_col,
+                    color=color_col,
+                    title=f"{coin}",
+                    labels={y_col: y_label},
+                    log_y=log_y,
+                )
+                st.plotly_chart(fig, use_container_width=True)
 def main():
     st.set_page_config(page_title="Crypto Broker Information Dashboard", layout="wide")
     st.title("📈 Crypto Broker Information Dashboard")
@@ -78,68 +95,25 @@ def main():
             st.dataframe(df.sort_values(by=['Pair', 'Exchange']), use_container_width=True)
             price_df = df.dropna(subset=['Price'])
 
-            st.subheader("💸 Price Comparison Across Exchanges")
-            for coin in price_df['Pair'].unique():
-                st.markdown(f"**💸 {coin} Price Across Exchanges**")
-                fig = px.bar(
-                    price_df[price_df['Pair'] == coin],
-                    x="Exchange",
-                    y="Price",
-                    color="Exchange",
-                    title=f"{coin} - Price by Exchange",
-                    labels={"Price": "Last Price"},
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            # st.plotly_chart(fig_price, use_container_width=True)
-
-            st.subheader("📊 24h Trading Volume (Base)")
             volume_df = df.dropna(subset=["Volume (24h)"])
-            for coin in volume_df["Pair"].unique():
-                st.markdown(f"**{coin} - 24h Volume Across Exchanges**")
-                fig = px.bar(
-                    volume_df[volume_df["Pair"] == coin],
-                    x="Exchange",
-                    y="Volume (24h)",
-                    color="Exchange",
-                    log_y=True,
-                    labels={"Volume (24h)": "Volume"},
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-            st.subheader("📈 24h % Change")
             change_df = df.dropna(subset=["% Change"])
-            for coin in change_df["Pair"].unique():
-                st.markdown(f"**{coin} - 24h % Change Across Exchanges**")
-                fig = px.bar(
-                    change_df[change_df["Pair"] == coin],
-                    x="Exchange",
-                    y="% Change",
-                    color="Exchange",
-                    labels={"% Change": "% Change"},
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            st.subheader("🔎 Bid-Ask Spread per Exchange")
             spread_df = df.copy()
             spread_df["Spread"] = spread_df["Ask"] - spread_df["Bid"]
             spread_df = spread_df.dropna(subset=["Spread"])
-
-            for coin in spread_df["Pair"].unique():
-                st.markdown(f"**{coin} - Spread Across Exchanges**")
-                fig = px.bar(
-                    spread_df[spread_df["Pair"] == coin],
-                    x="Exchange",
-                    y="Spread",
-                    color="Exchange",
-                    labels={"Spread": "Ask - Bid"},
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
             
-            st.subheader("⏱ Data Freshness (Age in Seconds)")
-            fresh_df = df.copy()
-            fresh_df["Data Age (sec)"] = (datetime.utcnow() - fresh_df["Timestamp"]).dt.total_seconds().round()
-            fresh_df = fresh_df.dropna(subset=["Data Age (sec)"])
+            st.subheader("💸 Price Per Coin")
+            display_charts_grid(price_df, "Price", "Price", "Last Price")
 
+            st.subheader("📊 24h Trading Volume")
+            display_charts_grid(volume_df, "Volume (24h)", "24h Volume", "Volume", log_y=True)
+
+            st.subheader("📈 24h % Change")
+            display_charts_grid(change_df, "% Change", "% Change", "% Change")
+
+            st.subheader("🔎 Bid-Ask Spread")
+            display_charts_grid(spread_df, "Spread", "Spread", "Ask - Bid")
+
+            st.subheader("⏱ Data Freshness (Age in Seconds)")
             fig_fresh = px.density_heatmap(
                 fresh_df,
                 x="Exchange",
@@ -147,10 +121,9 @@ def main():
                 z="Data Age (sec)",
                 color_continuous_scale="reds",
                 title="Freshness of Broker Data (lower is better)",
+                labels={"Data Age (sec)": "Age (s)"},
             )
             st.plotly_chart(fig_fresh, use_container_width=True)
-
-
 
         if not autorefresh:
             break
