@@ -3,3 +3,4 @@ requests
 streamlit
 ccxt
 pandas
+plotly
