@@ -5,7 +5,7 @@ import tempfile
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-st.title("PDF Comparison Chat with GPT-4")
+st.title("PDF Comparison")
 
 pdf1 = st.file_uploader("Upload the first PDF", type="pdf")
 pdf2 = st.file_uploader("Upload the second PDF", type="pdf")
@@ -29,9 +29,8 @@ if st.button("Submit") and pdf1 and pdf2 and question:
         instructions="You are an expert in document analysis. Use the uploaded PDFs to answer user questions, especially those comparing values between the two.",
         model="gpt-4-1106-preview",
         tools=[{"type": "retrieval"}],
-        file_ids=[file1.id, file2.id]
+        tool_resources={"retrieval": {"file_ids": [file1.id, file2.id]}}
     )
-
     thread = openai.beta.threads.create()
     openai.beta.threads.messages.create(
         thread_id=thread.id,
