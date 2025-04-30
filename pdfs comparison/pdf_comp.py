@@ -33,19 +33,16 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     )
 
     thread = openai.beta.threads.create()
-
-    openai.beta.threads.messages.create(
+    message = openai.beta.threads.messages.create(
         thread_id=thread.id,
         role="user",
-        content=question,
-        file_ids=[file1.id, file2.id]  # Attach files here instead
+        content=question
     )
 
     run = openai.beta.threads.runs.create(
         thread_id=thread.id,
         assistant_id=assistant.id
     )
-
 
     with st.spinner("Getting your answer from GPT-4..."):
         while True:
