@@ -25,7 +25,6 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     file1 = openai.files.create(file=open(pdf1_path, "rb"), purpose="assistants")
     file2 = openai.files.create(file=open(pdf2_path, "rb"), purpose="assistants")
 
-
     assistant = openai.beta.assistants.create(
         name="PDF Comparator",
         instructions="You are an expert in comparing two documents. Use the uploaded PDFs to answer user questions, especially comparisons.",
@@ -43,7 +42,8 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     run = openai.beta.threads.runs.create(
         thread_id=thread.id,
         assistant_id=assistant.id,
-        additional_file_ids=[file1.id, file2.id]
+        tool_choice="auto",
+        file_ids=[file1.id, file2.id]
     )
 
     with st.spinner("Getting your answer from GPT-4..."):
