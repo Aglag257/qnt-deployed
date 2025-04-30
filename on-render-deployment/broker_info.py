@@ -65,7 +65,8 @@ def display_charts_grid(df_subset, y_col, title_prefix, y_label, color_col="Exch
                     labels={y_col: y_label},
                     log_y=log_y,
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key=f"{y_col}-{coin}")
+
 def main():
     st.set_page_config(page_title="Crypto Broker Information Dashboard", layout="wide")
     st.title("📈 Crypto Broker Information Dashboard")
