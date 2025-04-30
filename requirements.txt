@@ -1,6 +1,6 @@
-openai
 requests
-streamlit
 ccxt
 pandas
 plotly
+openai>=1.12.0
+streamlit>=1.30.0
