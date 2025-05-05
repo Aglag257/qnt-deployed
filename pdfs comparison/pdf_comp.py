@@ -25,31 +25,24 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     file1 = openai.files.create(file=open(pdf1_path, "rb"), purpose="assistants")
     file2 = openai.files.create(file=open(pdf2_path, "rb"), purpose="assistants")
 
-    # vector_store = openai.beta.vector_stores.create(file_ids=[file1.id, file2.id])
-
-    vector_store = openai.beta.vector_stores.create_and_poll(
-    name="PDF Comparison Store",
-    file_ids=[file1.id, file2.id]
-)
-
-
     assistant = openai.beta.assistants.create(
         name="PDF Comparator",
         instructions="You are an expert in comparing two documents. Use the uploaded PDFs to answer user questions, especially comparisons.",
         model="gpt-4-1106-preview",
-        tools=[{"type": "file_search"}],
-        tool_resources={
-            "file_search": {
-                "vector_store_ids": [vector_store.id]
-            }
-        }
+        tools=[{"type": "file_search"}]
     )
 
-    thread = openai.beta.threads.create()
-    openai.beta.threads.messages.create(
-        thread_id=thread.id,
-        role="user",
-        content=question
+    thread = openai.beta.threads.create(
+        messages=[
+            {
+                "role": "user",
+                "content": question,
+                "attachments": [
+                    {"file_id": file1.id, "tools": [{"type": "file_search"}]},
+                    {"file_id": file2.id, "tools": [{"type": "file_search"}]}
+                ],
+            }
+        ]
     )
 
     run = openai.beta.threads.runs.create(
@@ -61,19 +54,21 @@ if st.button("Submit") and pdf1 and pdf2 and question:
         while True:
             run_status = openai.beta.threads.runs.retrieve(
                 thread_id=thread.id,
-                run_id=run.id
+                run_id=run.id,
             )
             if run_status.status == "completed":
                 break
-            elif run_status.status == "failed":
+            if run_status.status == "failed":
                 st.error("The assistant failed to process the request.")
-                break
+                return
             time.sleep(1)
 
-        messages = openai.beta.threads.messages.list(thread_id=thread.id)
-        response = messages.data[0].content[0].text.value
-        st.markdown("### Answer")
-        st.write(response)
+    messages = openai.beta.threads.messages.list(thread_id=thread.id)
+    last_message = messages.data[0]
+    answer = last_message.content[0].text.value
+
+    st.markdown("### Answer")
+    st.write(answer)
 
     os.remove(pdf1_path)
     os.remove(pdf2_path)
