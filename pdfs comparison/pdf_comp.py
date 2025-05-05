@@ -60,7 +60,7 @@ if st.button("Submit") and pdf1 and pdf2 and question:
                 break
             if run_status.status == "failed":
                 st.error("The assistant failed to process the request.")
-                return
+                break
             time.sleep(1)
 
     messages = openai.beta.threads.messages.list(thread_id=thread.id)
