@@ -25,7 +25,13 @@ if st.button("Submit") and pdf1 and pdf2 and question:
     file1 = openai.files.create(file=open(pdf1_path, "rb"), purpose="assistants")
     file2 = openai.files.create(file=open(pdf2_path, "rb"), purpose="assistants")
 
-    vector_store = openai.beta.vector_stores.create(file_ids=[file1.id, file2.id])
+    # vector_store = openai.beta.vector_stores.create(file_ids=[file1.id, file2.id])
+
+    vector_store = openai.beta.vector_stores.create_and_poll(
+    name="PDF Comparison Store",
+    file_ids=[file1.id, file2.id]
+)
+
 
     assistant = openai.beta.assistants.create(
         name="PDF Comparator",
