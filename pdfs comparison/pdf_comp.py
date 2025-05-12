@@ -42,7 +42,7 @@ if not openai.api_key:
     st.error("OPENAI_API_KEY not set in secrets/environment.")
     st.stop()
 
-st.title("📄🔍 Ask across Documents: make One Question related to the uploaded files")
+st.title("📄🔍 Ask across Documents: make a conversation and ask questions related to the uploaded files")
 
 with st.expander("Upload up to two PDFs", expanded=True):
     pdf1 = st.file_uploader("First PDF", type="pdf", key="pdf1")
