@@ -6,7 +6,7 @@ import time
 
 openai.api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
 
-st.title("PDF Comparison Chat with GPT-4")
+st.title("Ask across Documents: make One Question related to the uploaded files")
 
 pdf1 = st.file_uploader("Upload the first PDF", type="pdf")
 pdf2 = st.file_uploader("Upload the second PDF", type="pdf")
