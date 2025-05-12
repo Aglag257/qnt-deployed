@@ -101,14 +101,24 @@ if ask_btn and question:
     ensure_thread()
 
     attachments = []
-    if not st.session_state.files_attached and pdf1 and pdf2:
+    user_hint = ""
+    if not st.session_state.files_attached and (pdf1 or pdf2):
+        filenames = []
         for f in (pdf1, pdf2):
-            if f: 
+            if f:
+                filenames.append(f.name)
                 for fid in process_upload(f):
                     attachments.append({"file_id": fid, "tools": [{"type": "file_search"}]})
         st.session_state.files_attached = True
+        if filenames:
+            pretty = " and ".join(f"'{name}'" for name in filenames)
+            user_hint = f"(When you answer, please refer to the uploaded documents by their filenames: {pretty}.)"
 
-    msg_kwargs = dict(thread_id=st.session_state.thread_id, role="user", content=question)
+    msg_kwargs = dict(
+        thread_id=st.session_state.thread_id,
+        role="user",
+        content=question + user_hint,
+    )
     if attachments:
         msg_kwargs["attachments"] = attachments
     openai.beta.threads.messages.create(**msg_kwargs)
