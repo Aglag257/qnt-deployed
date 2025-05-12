@@ -12,7 +12,6 @@ from pypdf import PdfReader
 
 
 def pdf_has_text(path: str) -> bool:
-    """Return True if any page of the PDF has an extractable text layer."""
     try:
         reader = PdfReader(path)
         for page in reader.pages:
@@ -25,7 +24,6 @@ def pdf_has_text(path: str) -> bool:
 
 
 def ocr_pdf_to_txt(pdf_path: str) -> str:
-    """OCR every page → write to a .txt file → return its path."""
     pages = convert_from_path(pdf_path, dpi=300)
     ocr_chunks: List[str] = []
     for i, img in enumerate(pages, 1):
@@ -44,7 +42,7 @@ if not openai.api_key:
     st.error("OPENAI_API_KEY not set in secrets/environment.")
     st.stop()
 
-st.title("📄🔍 PDF Comparator Chat (native + scans)")
+st.title("📄🔍 Ask across Documents: make One Question related to the uploaded files")
 
 with st.expander("Upload up to two PDFs", expanded=True):
     pdf1 = st.file_uploader("First PDF", type="pdf", key="pdf1")
