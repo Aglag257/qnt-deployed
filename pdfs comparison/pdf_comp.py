@@ -4,10 +4,7 @@ import os
 import tempfile
 from typing import List
 import google.generativeai as genai
-from PIL import Image
-from pypdf import PdfReader
-from pdf2image import convert_from_path
-
+from google.generativeai import types
 
 genai.configure(api_key=st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY"))
 if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
@@ -15,27 +12,20 @@ if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
     st.stop()
 
 
-def pdf_to_images(pdf_path: str) -> List[Image.Image]:
-    """Converts PDF pages to PIL Image objects."""
-    return convert_from_path(pdf_path, dpi=300)
+def generate_content_with_pdfs(pdf_bytes_list: List[bytes], user_q: str) -> str:
+    model = genai.GenerativeModel('gemini-1.5-flash')
 
-
-def vision_query_gemini(image_paths: List[str], user_q: str) -> str:
-    model = genai.GenerativeModel('gemini-pro-vision')
-    content_parts = []
-
-    for pdf_path in image_paths:
-        images = pdf_to_images(pdf_path)
-        for i, img in enumerate(images):
-            content_parts.append(img)
+    contents = []
+    for pdf_bytes in pdf_bytes_list:
+        contents.append(types.Part.from_bytes(data=pdf_bytes, mime_type='application/pdf'))
     
-    content_parts.append(user_q)
+    contents.append(user_q)
 
     try:
-        response = model.generate_content(content_parts)
+        response = model.generate_content(contents)
         return response.text
     except Exception as e:
-        return f"Error querying Gemini Vision: {e}"
+        return f"Error querying Gemini: {e}"
 
 
 st.title("📄🔍 Ask across Documents: make a conversation and ask questions related to the uploaded files")
@@ -49,8 +39,8 @@ ask_btn = st.button("Ask")
 
 if "conversation_history" not in st.session_state:
     st.session_state.conversation_history: List[dict] = []
-if "uploaded_pdf_paths" not in st.session_state:
-    st.session_state.uploaded_pdf_paths: List[str] = []
+if "uploaded_pdf_bytes" not in st.session_state:
+    st.session_state.uploaded_pdf_bytes: List[bytes] = []
 if "files_processed_for_gemini" not in st.session_state:
     st.session_state.files_processed_for_gemini = False
 
@@ -62,19 +52,15 @@ if ask_btn and question:
         st.stop()
 
     if not st.session_state.files_processed_for_gemini:
-        st.session_state.uploaded_pdf_paths = []
+        st.session_state.uploaded_pdf_bytes = []
         for uploaded_file in uploads:
-
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-            tmp.write(uploaded_file.getvalue())
-            tmp.flush()
-            st.session_state.uploaded_pdf_paths.append(tmp.name)
+            st.session_state.uploaded_pdf_bytes.append(uploaded_file.getvalue())
         st.session_state.files_processed_for_gemini = True
 
     st.session_state.conversation_history.append({"role": "user", "content": question})
 
-    with st.spinner("Asking Gemini Vision..."):
-        answer = vision_query_gemini(st.session_state.uploaded_pdf_paths, question)
+    with st.spinner("Asking Gemini..."):
+        answer = generate_content_with_pdfs(st.session_state.uploaded_pdf_bytes, question)
         
         st.session_state.conversation_history.append({"role": "assistant", "content": answer})
 
