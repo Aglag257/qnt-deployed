@@ -4,7 +4,9 @@ import os
 import tempfile
 from typing import List
 import google.generativeai as genai
-from google.generativeai import GenerativeModel, Part
+from google.generativeai import GenerativeModel
+from google.generativeai.types import Part
+
 
 genai.configure(api_key=st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY"))
 if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
