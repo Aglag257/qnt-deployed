@@ -4,8 +4,7 @@ import os
 import tempfile
 from typing import List
 import google.generativeai as genai
-from google.generativeai import GenerativeModel, types
-
+from google.generativeai import GenerativeModel, Part
 
 genai.configure(api_key=st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY"))
 if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
@@ -14,11 +13,12 @@ if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
 
 
 def generate_content_with_pdfs(pdf_bytes_list: List[bytes], user_q: str) -> str:
+    """Sends a query to Gemini with multiple PDF byte streams."""
     model = GenerativeModel('gemini-1.5-flash')
 
     contents = []
     for pdf_bytes in pdf_bytes_list:
-        contents.append(types.Part.from_bytes(data=pdf_bytes, mime_type='application/pdf'))
+        contents.append(Part.from_bytes(data=pdf_bytes, mime_type='application/pdf'))
     
     contents.append(user_q)
 
