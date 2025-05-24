@@ -4,7 +4,6 @@ import os
 import tempfile
 from typing import List
 import google.generativeai as genai
-from google.generativeai import types
 
 genai.configure(api_key=st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY"))
 if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
@@ -16,7 +15,10 @@ def generate_content_with_pdfs(pdf_bytes_list: List[bytes], user_q: str) -> str:
     contents = []
     
     for i, pdf_bytes in enumerate(pdf_bytes_list):
-        contents.append(types.Part.from_bytes(data=pdf_bytes, mime_type='application/pdf'))
+        contents.append({
+            "mime_type": "application/pdf",
+            "data": pdf_bytes
+        })
     
     enhanced_prompt = f"""
     You are analyzing scanned PDF documents that may contain tables, forms, or structured data.
@@ -44,7 +46,7 @@ def generate_content_with_pdfs(pdf_bytes_list: List[bytes], user_q: str) -> str:
     try:
         response = model.generate_content(
             contents,
-            generation_config=genai.types.GenerationConfig(
+            generation_config=genai.GenerationConfig(
                 temperature=0.1,
                 max_output_tokens=2048,
             )
