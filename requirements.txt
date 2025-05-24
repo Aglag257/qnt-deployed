@@ -8,3 +8,6 @@ pypdf
 pdf2image
 pytesseract
 Pillow
+
+google-generativeai
+PyPDF2
