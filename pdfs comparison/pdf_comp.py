@@ -32,14 +32,15 @@ def ocr_pdf_to_txt(pdf_path: str) -> str:
 
 
 def vision_query(paths: List[str], user_q: str) -> str:
-    parts = []
+    content_parts = []
     for p in paths:
         fid = openai.files.create(file=open(p, "rb"), purpose="user_data").id
-        parts.append({"type": "input_file", "file_id": fid})
-    parts.append({"type": "input_text", "text": user_q})
+        content_parts.append({"type": "file", "file_id": fid})
+    content_parts.append({"type": "text", "text": user_q})
+
     resp = openai.chat.completions.create(
         model="gpt-4o",
-        messages=[{"role": "user", "content": parts}],
+        messages=[{"role": "user", "content": content_parts}],
     )
     return resp.choices[0].message.content
 
@@ -69,6 +70,15 @@ if "attachments" not in st.session_state:
     st.session_state.attachments: List[dict] = []
 if "any_text_layer" not in st.session_state:
     st.session_state.any_text_layer = False
+
+if "assistant_id" not in st.session_state:
+    st.session_state.assistant_id = None
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = None
+if "files_attached" not in st.session_state:
+    st.session_state.files_attached = False
+if "vision_paths" not in st.session_state:
+    st.session_state.vision_paths: List[str] = []
 
 
 def upload_for_assistant(file) -> tuple[List[str], bool]:
