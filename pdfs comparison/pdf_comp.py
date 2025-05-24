@@ -65,6 +65,11 @@ if "files_attached" not in st.session_state:
     st.session_state.files_attached = False
 if "vision_paths" not in st.session_state:
     st.session_state.vision_paths: List[str] = []
+if "attachments" not in st.session_state:
+    st.session_state.attachments: List[dict] = []
+if "any_text_layer" not in st.session_state:
+    st.session_state.any_text_layer = False
+
 
 def upload_for_assistant(file) -> tuple[List[str], bool]:
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
