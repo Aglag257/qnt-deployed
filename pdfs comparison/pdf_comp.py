@@ -57,7 +57,7 @@ def vision_query(paths: List[str], user_q: str) -> str:
         model="gpt-4o",
         messages=[{"role": "user", "content": content_parts}],
     )
-    return resp.choices[0].message.content[0].message.content
+    return resp.choices[0].message.content
 
 openai.api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
