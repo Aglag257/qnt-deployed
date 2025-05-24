@@ -31,10 +31,25 @@ def ocr_pdf_to_txt(pdf_path: str) -> str:
     return txt_path
 
 
+def wait_until_processed(file_id: str, timeout: int = 60):
+    import time as _t
+    start = _t.time()
+    while True:
+        f = openai.files.retrieve(file_id)
+        if f.status == "processed":
+            return
+        if f.status == "failed":
+            raise RuntimeError(f"File {file_id} failed processing")
+        if _t.time() - start > timeout:
+            raise TimeoutError("File processing timeout")
+        _t.sleep(2)
+
+
 def vision_query(paths: List[str], user_q: str) -> str:
     content_parts = []
     for p in paths:
         fid = openai.files.create(file=open(p, "rb"), purpose="user_data").id
+        wait_until_processed(fid)
         content_parts.append({"type": "file", "file_id": fid})
     content_parts.append({"type": "text", "text": user_q})
 
@@ -42,7 +57,7 @@ def vision_query(paths: List[str], user_q: str) -> str:
         model="gpt-4o",
         messages=[{"role": "user", "content": content_parts}],
     )
-    return resp.choices[0].message.content
+    return resp.choices[0].message.content[0].message.content
 
 openai.api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
