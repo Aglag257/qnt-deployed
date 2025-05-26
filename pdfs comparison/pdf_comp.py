@@ -11,7 +11,7 @@ if not (st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")):
     st.stop()
 
 def generate_content_with_pdfs(pdf_bytes_list: List[bytes], user_q: str) -> str:
-    model = genai.GenerativeModel('gemini-1.5-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     contents = []
     
     for i, pdf_bytes in enumerate(pdf_bytes_list):
@@ -74,7 +74,7 @@ def generate_comparison_prompt(user_question: str) -> str:
     Comparison: [similarities/differences]
     """
 
-st.title("📄🔍 📄🔍 Ask across Documents: make a conversation and ask questions related to the uploaded files")
+st.title("📄🔍 Ask across Documents: make a conversation and ask questions related to the uploaded files")
 st.caption("Optimized for scanned documents, test reports, and certificates")
 
 with st.expander("Upload up to two PDFs", expanded=True):
