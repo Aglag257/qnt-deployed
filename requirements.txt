@@ -11,3 +11,5 @@ Pillow
 
 google-generativeai
 PyPDF2
+
+openpyxl
