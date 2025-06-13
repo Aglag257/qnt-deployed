@@ -139,7 +139,7 @@ graph.add_edge("evaluate", "revise")
 def loop_or_exit(state: SummaryState) -> str:
     return "save" if state.get("evaluation_complete") else "answer"
 
-graph.add_conditional_edges("revise", loop_or_exit, {"answer", "save"})
+graph.add_conditional_edges("revise", loop_or_exit, ["answer", "save"])
 graph.add_edge("save", END)
 
 compiled_graph = graph.compile()
