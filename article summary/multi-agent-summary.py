@@ -19,6 +19,7 @@ class SummaryState(TypedDict):
     answers: str
     feedback: str
     evaluation_complete: bool
+    iteration_count: int
     messages: Annotated[list[AnyMessage], operator.add]
 
 # -------------------
@@ -85,10 +86,15 @@ def evaluate_answers(state: SummaryState) -> dict:
 """
     res = llm.invoke([HumanMessage(content=prompt)])
     evaluation_text = res.content
-    should_continue = "δεν υπάρχουν προβλήματα" not in evaluation_text.lower()
+
+    # Flexible success phrases
+    success_phrases = ["δεν υπάρχουν προβλήματα", "όλα είναι σωστά", "η περίληψη είναι επαρκής"]
+    should_continue = not any(phrase in evaluation_text.lower() for phrase in success_phrases)
+
     return {
         "feedback": evaluation_text,
-        "evaluation_complete": not should_continue
+        "evaluation_complete": not should_continue,
+        "iteration_count": state.get("iteration_count", 0) + 1
     }
 
 def improve_summary(state: SummaryState) -> dict:
@@ -135,9 +141,12 @@ graph.add_edge("answer", "evaluate")
 graph.add_edge("evaluate", "revise")
 
 # Conditional edge: stop loop or continue
-
 def loop_or_exit(state: SummaryState) -> str:
-    return "save" if state.get("evaluation_complete") else "answer"
+    if state.get("evaluation_complete"):
+        return "save"
+    if state.get("iteration_count", 0) >= 4:
+        return "save"
+    return "answer"
 
 graph.add_conditional_edges("revise", loop_or_exit, ["answer", "save"])
 graph.add_edge("save", END)
@@ -152,11 +161,14 @@ def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
         "pdf_path": pdf_path,
         "output_path": output_path,
         "messages": [],
-        "evaluation_complete": False
+        "evaluation_complete": False,
+        "iteration_count": 0
     }
     result = compiled_graph.invoke(state, config={"recursion_limit": iterations})
-    print("Περίληψη αποθηκεύτηκε στο:", result["output_path"])
+    print("✅ Περίληψη αποθηκεύτηκε στο:", result["output_path"])
 
-# Example usage
+# -------------------
+# Entry Point
+# -------------------
 if __name__ == "__main__":
     summarize_greek_pdf("article.pdf", "summary.txt")
