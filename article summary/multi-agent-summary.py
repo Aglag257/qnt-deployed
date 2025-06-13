@@ -2,6 +2,7 @@ import os
 from typing import TypedDict, Annotated
 import operator
 from langgraph.graph import StateGraph, END, START
+from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, AIMessage, AnyMessage
 from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
@@ -17,6 +18,7 @@ class SummaryState(TypedDict):
     questions: str
     answers: str
     feedback: str
+    evaluation_complete: bool
     messages: Annotated[list[AnyMessage], operator.add]
 
 # -------------------
@@ -82,7 +84,12 @@ def evaluate_answers(state: SummaryState) -> dict:
 {state['answers']}
 """
     res = llm.invoke([HumanMessage(content=prompt)])
-    return {"feedback": res.content}
+    evaluation_text = res.content
+    should_continue = "δεν υπάρχουν προβλήματα" not in evaluation_text.lower()
+    return {
+        "feedback": evaluation_text,
+        "evaluation_complete": not should_continue
+    }
 
 def improve_summary(state: SummaryState) -> dict:
     prompt = f"""
@@ -126,11 +133,14 @@ graph.add_edge("summarize", "answer")
 graph.add_edge("ask", "answer")
 graph.add_edge("answer", "evaluate")
 graph.add_edge("evaluate", "revise")
-graph.add_edge("revise", "answer")
-graph.add_edge("revise", "evaluate")   
-graph.add_edge("revise", "save")
-graph.add_edge("save", END)
 
+# Conditional edge: stop loop or continue
+
+def loop_or_exit(state: SummaryState) -> str:
+    return "save" if state.get("evaluation_complete") else "answer"
+
+graph.add_conditional_edges("revise", loop_or_exit, {"answer", "save"})
+graph.add_edge("save", END)
 
 compiled_graph = graph.compile()
 
@@ -141,7 +151,8 @@ def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
     state = {
         "pdf_path": pdf_path,
         "output_path": output_path,
-        "messages": []
+        "messages": [],
+        "evaluation_complete": False
     }
     result = compiled_graph.invoke(state, config={"recursion_limit": iterations})
     print("Περίληψη αποθηκεύτηκε στο:", result["output_path"])
