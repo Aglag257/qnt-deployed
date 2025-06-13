@@ -1,167 +1,152 @@
 import os
-from langraph import Graph, Node
-from langraph.llms import ChatOpenAI
-from langraph.connectors import PDFConnector
+from typing import TypedDict, Annotated
+import operator
+from langgraph.graph import StateGraph, END, START
+from langchain_core.messages import HumanMessage, AIMessage, AnyMessage
+from langchain_openai import ChatOpenAI
+from langchain_community.document_loaders import PyPDFLoader
 
-# Greek-language multi-agent summarization system using LangGraph
+# -------------------
+# Define State Schema
+# -------------------
+class SummaryState(TypedDict):
+    pdf_path: str
+    output_path: str
+    pdf_text: str
+    summary: str
+    questions: str
+    answers: str
+    feedback: str
+    messages: Annotated[list[AnyMessage], operator.add]
 
-# Initialize LLM client (use GPT-4)
-llm = ChatOpenAI(model_name="gpt-4", temperature=0.2)
+# -------------------
+# Initialize LLM
+# -------------------
+llm = ChatOpenAI(model="gpt-4", temperature=0.2)
 
-# Connector to read PDF articles
-pdf_reader = PDFConnector()
+# -------------------
+# Define Nodes
+# -------------------
+def read_article(state: SummaryState) -> dict:
+    loader = PyPDFLoader(state["pdf_path"])
+    pages = loader.load()
+    text = "\n\n".join([p.page_content for p in pages])
+    return {"pdf_text": text}
 
-# Node: Διαβάζει το PDF και επιστρέφει το πλήρες κείμενο
-read_article = Node(
-    name="read_article",
-    llm=llm,
-    prompt="""
-Διαβάστε το πλήρες κείμενο του άρθρου από το PDF στον μονοπάτι {{pdf_path}} και επιστρέψτε μόνο το κείμενο χωρίς σχόλια.
-""",
-    inputs=["pdf_path"]
-)
+def generate_summary(state: SummaryState) -> dict:
+    prompt = f"""
+Διαβάστε το παρακάτω ελληνικό άρθρο και δημιουργήστε μία αρχική περίληψη με bullets. 
+Κάθε bullet να αναφέρεται σε ένα βασικό σημείο του άρθρου:
 
-# Node: Πρώτη περίληψη σε bullets
-first_summary = Node(
-    name="first_summary",
-    llm=llm,
-    prompt="""
-Έχοντας το πλήρες κείμενο του άρθρου:
+{state['pdf_text']}
 """
+    res = llm.invoke([HumanMessage(content=prompt)])
+    return {"summary": res.content}
+
+def generate_questions(state: SummaryState) -> dict:
+    prompt = f"""
+Διαβάστε το παρακάτω ελληνικό άρθρο και δημιουργήστε 5-7 ερωτήσεις που να ελέγχουν την κατανόηση των βασικών του σημείων:
+
+{state['pdf_text']}
 """
-1) Δημιουργήστε μια αρχική περίληψη σε μορφή bullets στα Ελληνικά.
-2) Κάθε bullet πρέπει να καλύπτει ένα κύριο σημείο του άρθρου.
-""",
-    inputs=["read_article.output"]
-)
+    res = llm.invoke([HumanMessage(content=prompt)])
+    return {"questions": res.content}
 
-# Node: Δημιουργία ερωτήσεων κατανόησης
-question_generator = Node(
-    name="question_generator",
-    llm=llm,
-    prompt="""
-Έχοντας το πλήρες κείμενο του άρθρου:
+def answer_questions(state: SummaryState) -> dict:
+    prompt = f"""
+Έχοντας την παρακάτω περίληψη του άρθρου:
+
+{state['summary']}
+
+Απαντήστε στις ερωτήσεις:
+
+{state['questions']}
 """
+    res = llm.invoke([HumanMessage(content=prompt)])
+    return {"answers": res.content}
+
+def evaluate_answers(state: SummaryState) -> dict:
+    prompt = f"""
+Αξιολογήστε τις παρακάτω απαντήσεις βασισμένοι στο αρχικό άρθρο και δώστε σχόλια για το πώς μπορεί να βελτιωθεί η περίληψη ώστε να απαντώνται σωστά οι ερωτήσεις:
+
+Άρθρο:
+{state['pdf_text']}
+
+Περίληψη:
+{state['summary']}
+
+Ερωτήσεις:
+{state['questions']}
+
+Απαντήσεις:
+{state['answers']}
 """
-1) Δημιουργήστε 5-7 ερωτήσεις πολλαπλής επιλογής ή ανοικτού τύπου που ελέγχουν την κατανόηση των κύριων σημείων.
-2) Παρουσιάστε τις ερωτήσεις στα Ελληνικά.
-""",
-    inputs=["read_article.output"]
-)
+    res = llm.invoke([HumanMessage(content=prompt)])
+    return {"feedback": res.content}
 
-# Node: Απάντηση στις ερωτήσεις με βάση την περίληψη
-answer_questions = Node(
-    name="answer_questions",
-    llm=llm,
-    prompt="""
-Έχοντας την αρχική περίληψη:
-{{first_summary.output}}
+def improve_summary(state: SummaryState) -> dict:
+    prompt = f"""
+Έχοντας την παρακάτω περίληψη:
 
-και τις ερωτήσεις:
-{{question_generator.output}}
+{state['summary']}
 
-Απαντήστε σε κάθε ερώτηση χρησιμοποιώντας μόνο την περίληψη.
-""",
-    inputs=["first_summary.output", "question_generator.output"]
-)
+Και τα εξής σχόλια αξιολόγησης:
 
-# Node: Αξιολόγηση απαντήσεων και feedback για τη βελτίωση της περίληψης
-evaluate_answers = Node(
-    name="evaluate_answers",
-    llm=llm,
-    prompt="""
-Έχοντας την αρχική περίληψη:
-{{first_summary.output}}
+{state['feedback']}
 
-τις ερωτήσεις:
-{{question_generator.output}}
+Βελτιώστε την περίληψη με βάση τα σχόλια. Η νέα περίληψη να είναι και πάλι σε μορφή bullets.
+"""
+    res = llm.invoke([HumanMessage(content=prompt)])
+    return {"summary": res.content}
 
-και τις απαντήσεις:
-{{answer_questions.output}}
+def save_to_file(state: SummaryState) -> dict:
+    with open(state["output_path"], "w", encoding="utf-8") as f:
+        f.write(state["summary"])
+    return {"output_path": state["output_path"]}
 
-1) Εντοπίστε λάθη ή ελλείψεις στις απαντήσεις.
-2) Δώστε ανατροφοδότηση στον κόμβο της περίληψης για το πώς να βελτιώσει τα bullets ώστε να μην υπάρχουν λάθη.
-Παρουσιάστε σχόλια στα Ελληνικά.
-""",
-    inputs=["first_summary.output", "question_generator.output", "answer_questions.output"]
-)
-
-# Node: Ενημέρωση περίληψης βάσει feedback
-update_summary = Node(
-    name="update_summary",
-    llm=llm,
-    prompt="""
-Έχοντας το αρχικό κείμενο:
-{{read_article.output}}
-
-την αρχική περίληψη:
-{{first_summary.output}}
-
-και τα σχόλια:
-{{evaluate_answers.output}}
-
-Δημιουργήστε μια βελτιωμένη περίληψη σε bullets στα Ελληνικά.
-""",
-    inputs=["read_article.output", "first_summary.output", "evaluate_answers.output"]
-)
-
-# Node: Αποθήκευση τελικής περίληψης σε αρχείο .txt
-save_summary = Node(
-    name="save_summary",
-    llm=llm,
-    prompt="""
-Έχοντας την τελική περίληψη:
-{{final_summary.output}}
-
-Αποθηκεύστε την περίληψη στο αρχείο {{output_path}}.
-Επιστρέψτε το μονοπάτι του αρχείου.
-""",
-    inputs=["final_summary.output", "output_path"]
-)
-
-# Build graph and connect nodes
-
-g = Graph()
+# -------------------
+# Build the Graph
+# -------------------
+graph = StateGraph(SummaryState)
 
 # Add nodes
-nodes = [read_article, first_summary, question_generator, answer_questions, evaluate_answers, update_summary, save_summary]
-for node in nodes:
-    g.add_node(node)
+graph.add_node("read", read_article)
+graph.add_node("summarize", generate_summary)
+graph.add_node("ask", generate_questions)
+graph.add_node("answer", answer_questions)
+graph.add_node("evaluate", evaluate_answers)
+graph.add_node("revise", improve_summary)
+graph.add_node("save", save_to_file)
 
-# Define edges and loop until no errors or max iterations
+# Add edges
+graph.set_entry_point("read")
+graph.add_edge("read", "summarize")
+graph.add_edge("read", "ask")
+graph.add_edge("summarize", "answer")
+graph.add_edge("ask", "answer")
+graph.add_edge("summarize", "evaluate")
+graph.add_edge("answer", "evaluate")
+graph.add_edge("evaluate", "revise")
+graph.add_edge("revise", "answer")  # loop
 
-# First pass
+graph.add_edge("revise", "evaluate")
+graph.add_edge("revise", "save")
+graph.add_edge("save", END)
 
-g.add_edge("read_article", "first_summary")
-g.add_edge("read_article", "question_generator")
-g.add_edge("first_summary", "answer_questions")
-g.add_edge("question_generator", "answer_questions")
-g.add_edge("first_summary", "evaluate_answers")
-g.add_edge("question_generator", "evaluate_answers")
-g.add_edge("answer_questions", "evaluate_answers")
-g.add_edge("read_article", "update_summary")
-g.add_edge("first_summary", "update_summary")
-g.add_edge("evaluate_answers", "update_summary")
+compiled_graph = graph.compile()
 
-g.add_edge("update_summary", "question_generator")
-g.add_edge("update_summary", "answer_questions")
-
-g.add_edge("update_summary", "evaluate_answers")
-
-g.add_edge("update_summary", "save_summary")
-
-# Function to run iterative refinement
-
-def summarize_pdf(pdf_path: str, output_txt: str, max_iters: int = 5):
-    # Initial inputs
-    data = {"pdf_path": pdf_path, "output_path": output_txt}
-    # Run graph with iteration
-    outputs = g.run(data, iterations=max_iters)
-    return outputs.get("save_summary")
+# -------------------
+# Run Function
+# -------------------
+def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
+    state = {
+        "pdf_path": pdf_path,
+        "output_path": output_path,
+        "messages": []
+    }
+    result = compiled_graph.invoke(state, config={"recursion_limit": iterations})
+    print("Περίληψη αποθηκεύτηκε στο:", result["output_path"])
 
 # Example usage
 if __name__ == "__main__":
-    input_pdf = "article.pdf"
-    output_txt = "summary.txt"
-    path = summarize_pdf(input_pdf, output_txt)
-    print(f"Η περίληψη αποθηκεύτηκε στο: {path}")
+    summarize_greek_pdf("article.pdf", "summary.txt")
