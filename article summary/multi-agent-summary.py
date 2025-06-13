@@ -124,14 +124,13 @@ graph.add_edge("read", "summarize")
 graph.add_edge("read", "ask")
 graph.add_edge("summarize", "answer")
 graph.add_edge("ask", "answer")
-graph.add_edge("summarize", "evaluate")
 graph.add_edge("answer", "evaluate")
 graph.add_edge("evaluate", "revise")
-graph.add_edge("revise", "answer")  # loop
-
-graph.add_edge("revise", "evaluate")
+graph.add_edge("revise", "answer")
+graph.add_edge("revise", "evaluate")   
 graph.add_edge("revise", "save")
 graph.add_edge("save", END)
+
 
 compiled_graph = graph.compile()
 
