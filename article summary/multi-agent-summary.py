@@ -10,9 +10,6 @@ from langgraph.errors import GraphRecursionError
 from dotenv import load_dotenv
 
 
-# -------------------
-# Define State Schema
-# -------------------
 class SummaryState(TypedDict):
     pdf_path: str
     output_path: str
@@ -25,9 +22,6 @@ class SummaryState(TypedDict):
     iteration_count: int
     messages: Annotated[list[AnyMessage], operator.add]
 
-# -------------------
-# Initialize LLM
-# -------------------
 load_dotenv()
 
 
@@ -37,9 +31,6 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-# -------------------
-# Define Nodes
-# -------------------
 def read_article(state: SummaryState) -> dict:
     loader = PyPDFLoader(state["pdf_path"])
     pages = loader.load()
@@ -97,7 +88,6 @@ def evaluate_answers(state: SummaryState) -> dict:
     res = llm.invoke([HumanMessage(content=prompt)])
     evaluation_text = res.content
 
-    # Flexible success phrases
     success_phrases = ["δεν υπάρχουν προβλήματα", "όλα είναι σωστά", "η περίληψη είναι επαρκής"]
     should_continue = not any(phrase in evaluation_text.lower() for phrase in success_phrases)
 
@@ -127,12 +117,8 @@ def save_to_file(state: SummaryState) -> dict:
         f.write(state["summary"])
     return {"output_path": state["output_path"]}
 
-# -------------------
-# Build the Graph
-# -------------------
 graph = StateGraph(SummaryState)
 
-# Add nodes
 graph.add_node("read", read_article)
 graph.add_node("summarize", generate_summary)
 graph.add_node("ask", generate_questions)
@@ -141,7 +127,6 @@ graph.add_node("evaluate", evaluate_answers)
 graph.add_node("revise", improve_summary)
 graph.add_node("save", save_to_file)
 
-# Add edges
 graph.set_entry_point("read")
 graph.add_edge("read", "summarize")
 graph.add_edge("read", "ask")
@@ -150,7 +135,6 @@ graph.add_edge("ask", "answer")
 graph.add_edge("answer", "evaluate")
 graph.add_edge("evaluate", "revise")
 
-# Conditional edge: stop loop or continue
 def loop_or_exit(state: SummaryState) -> str:
     if state.get("evaluation_complete"):
         return "save"
@@ -163,9 +147,6 @@ graph.add_edge("save", END)
 
 compiled_graph = graph.compile()
 
-# -------------------
-# Run Function
-# -------------------
 def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
     state = {
         "pdf_path": pdf_path,
@@ -177,9 +158,12 @@ def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
 
     try:
         result = compiled_graph.invoke(state, config={"recursion_limit": iterations})
-    except GraphRecursionError as e:
+    except GraphRecursionError:
         print("⚠️ Recursion limit hit, saving current summary anyway…")
-        # If we never got a summary, at least produce one now:
+
+        if "pdf_text" not in state:
+            state.update(read_article(state))
+
         if "summary" not in state:
             state.update(generate_summary(state))
         save_to_file(state)
@@ -187,8 +171,5 @@ def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
 
     print("✅ Περίληψη αποθηκεύτηκε στο:", result["output_path"])
 
-# -------------------
-# Entry Point
-# -------------------
 if __name__ == "__main__":
     summarize_greek_pdf("article.pdf", "summary.txt")
