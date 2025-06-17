@@ -6,6 +6,9 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, AIMessage, AnyMessage
 from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
+from langgraph.errors import GraphRecursionError
+from dotenv import load_dotenv
+
 
 # -------------------
 # Define State Schema
@@ -25,7 +28,14 @@ class SummaryState(TypedDict):
 # -------------------
 # Initialize LLM
 # -------------------
-llm = ChatOpenAI(model="gpt-4", temperature=0.2)
+load_dotenv()
+
+
+llm = ChatOpenAI(
+    model="gpt-4o",
+    temperature=0.2,
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
 # -------------------
 # Define Nodes
@@ -144,7 +154,7 @@ graph.add_edge("evaluate", "revise")
 def loop_or_exit(state: SummaryState) -> str:
     if state.get("evaluation_complete"):
         return "save"
-    if state.get("iteration_count", 0) >= 4:
+    if state.get("iteration_count", 0) >= 5:
         return "save"
     return "answer"
 
@@ -164,7 +174,17 @@ def summarize_greek_pdf(pdf_path: str, output_path: str, iterations: int = 5):
         "evaluation_complete": False,
         "iteration_count": 0
     }
-    result = compiled_graph.invoke(state, config={"recursion_limit": iterations})
+
+    try:
+        result = compiled_graph.invoke(state, config={"recursion_limit": iterations})
+    except GraphRecursionError as e:
+        print("⚠️ Recursion limit hit, saving current summary anyway…")
+        # If we never got a summary, at least produce one now:
+        if "summary" not in state:
+            state.update(generate_summary(state))
+        save_to_file(state)
+        result = {"output_path": state["output_path"]}
+
     print("✅ Περίληψη αποθηκεύτηκε στο:", result["output_path"])
 
 # -------------------
